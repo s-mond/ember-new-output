@@ -4,6 +4,14 @@ import { service } from '@ember/service';
 export default class ApplicationRoute extends Route {
   @service store;
 
+  schoolData = {
+    id: 's1',
+    type: 'school',
+    attributes: {
+      name: 'School One',
+    }
+  }
+
   courseData = {
     id: '1',
     type: 'course',
@@ -11,11 +19,8 @@ export default class ApplicationRoute extends Route {
       name: 'Course One',
     },
     relationships: {
-      lessons: {
-        data: [
-          { type: 'lesson', id: 'l1' },
-          { type: 'lesson', id: 'l2' }
-        ]
+      school: {
+        data: { type: 'school', id: 's1' },
       }
     }
   }
@@ -48,38 +53,21 @@ export default class ApplicationRoute extends Route {
 
   async model() {
 
-    await this.store.push({ data: this.lesson1Data });
-    await this.store.push({ data: this.lesson2Data });
+    await this.store.push({ data: this.schoolData });
     let course = await this.store.push({ data: this.courseData });
 
-    // At this point on this.store._graph.identifiers we have 3 identifiers, course, lesson, lesson
-    //all of those identifiers has isDirty = true state, so when we do .value() for first time instead of triggering the localState error, it sets up localState = []
     console.log(course.hasMany('lessons').value());
 
-    //when we unload all the courses, course is removed from the this.store._graph.identifiers
+    await this.store.push({ data: this.lesson1Data });
+    await this.store.push({ data: this.lesson2Data });
+
+    console.log(course.hasMany('lessons').value());
+
+    await this.store.unloadAll('lesson');
     await this.store.unloadAll('course');
 
-    //we push again the course values, so the identifier is added again with isDirty = true
-    //and all the relationships are on remoteState
     course = await this.store.push({ data: this.courseData });
 
-    //the first time we call .value() looks at the isDirty state and because is true it sets the localState with the remoteState value being the relationships or []
-    // console.log(course.hasMany('lessons').value());
-    // console.log(course.hasMany('lessons').value());
-
-    // set isDirty property to false before calling .hasMany('...').value()
-    for (const [ identifier, value ] of this.store._graph.identifiers) {
-      if (identifier?.type === 'course') {
-        value.lessons.isDirty = false;
-      }
-    }
-
-    //triggers the error
     course.hasMany('lessons').value();
-
-    //in our application when we do .unloadAll('some model') it doesnt remove the identifier from the graph
-    //that causes the identifier be always isDirty = false
-    //so when we load again the information we ended up skipping that step of setting the localState with the remoteState data
-    //and that triggers the error: Expected localState to be present
   }
 }

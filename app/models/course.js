@@ -1,10 +1,13 @@
-import Model, { attr, hasMany } from '@ember-data/model';
+import Model, { attr, belongsTo, hasMany } from '@ember-data/model';
 
 export default class Course extends Model {
 
   @attr('string')
   name;
 
-  @hasMany('lesson', { async: false, inverse: 'course' })
+  @belongsTo('school', { async: false, inverse: null })
+  school;
+
+  @hasMany('lesson', { async: true, inverse: 'course' })
   lessons;
 }
